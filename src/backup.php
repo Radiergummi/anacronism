@@ -7,7 +7,6 @@ namespace Radiergummi\Anacronism;
  * Creates a backup for its parent folder, including multiple different
  * sources if specified.
  *
- * @author "Moritz Friedrich <moritz.friedrich@boxhorn-edv.com>"
  */
 class Backup
 {
