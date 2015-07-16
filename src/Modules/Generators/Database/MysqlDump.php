@@ -1,5 +1,5 @@
 <?php
-namespace Radiergummi\Cronos\Modules\Generators\Database;
+namespace Radiergummi\Anacronism\Modules\Generators\Database;
 
 /**
  * MysqlDump class.
