@@ -1,5 +1,5 @@
 <?php
-namespace Radiergummi\Cronos\Modules\Generators;
+namespace Radiergummi\Anacronism\Modules\Generators;
 
 /**
  * Folder class.
