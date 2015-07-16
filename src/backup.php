@@ -1,5 +1,5 @@
 <?php
-namespace Radiergummi\Cronos;
+namespace Radiergummi\Anacronism;
 
 /**
  * Backup class.
