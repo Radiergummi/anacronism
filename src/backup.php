@@ -78,12 +78,6 @@ class Backup
 	 */
 	private function __construct()
 	{
-		// include database connection details
-		require('globals.php');
-		
-		// dump the database
-		$this->dumpDatabase($globalDBHost, $globalDBUser, $globalDBPass);
-		
 		// get a list of all files in the webroot
 		$files = $this->getDirectory(static::$path);
 		
