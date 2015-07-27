@@ -1,8 +1,8 @@
 <?php
 namespace Radiergummi\Anacronism;
 
-use \Radiergummi\Anacronism\Helpers\Hook,
-		\Radiergummi\Anacronism\Helpers\Log;
+use \Radiergummi\Anacronism\Helpers\Hook;
+use \Radiergummi\Anacronism\Helpers\Log;
 
 /**
  * Backup class.
