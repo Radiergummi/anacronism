@@ -7,11 +7,11 @@ namespace Radiergummi\Anacronism\Modules;
 interface Generator
 {
 	/**
-	 * buildFileList function.
+	 * getFileList function.
 	 * returns a list of files to include in the backup
 	 * 
 	 * @access public
 	 * @return void
 	 */
-	public function buildFileList();
+	public function getFileList();
 }
