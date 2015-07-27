@@ -1,9 +1,9 @@
 <?php
 namespace Radiergummi\Anacronism\Modules\Generators;
 
-use \RecursiveDirectoryIterator,
-		\RecursiveIteratorIterator,
-		\Radiergummi\Anacronism\Helpers\DirectoryFilter;
+use \RecursiveDirectoryIterator;
+use \RecursiveIteratorIterator;
+use \Radiergummi\Anacronism\Helpers\DirectoryFilter;
 /**
  * Folder class.
  * 
