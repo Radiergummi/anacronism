@@ -24,7 +24,7 @@ class Folder implements \Radiergummi\Anacronism\Modules\Generator
 	public $excludes = array(
 		'backup'
 	);
-	
+
 	/**
 	 * fileList
 	 * the list of files to include in the backup
@@ -35,8 +35,8 @@ class Folder implements \Radiergummi\Anacronism\Modules\Generator
 	 * @access public
 	 */
 	public $fileList = array();
-	
-	
+
+
 	/**
 	 * basepath
 	 * the base path
@@ -52,22 +52,25 @@ class Folder implements \Radiergummi\Anacronism\Modules\Generator
 	 * __construct function.
 	 * 
 	 * @access public
-	 * @param string $path							the base path
+	 * @param string $path			the base path
 	 * @param string|array $directories	the directories to include in the backup
-	 * @param array $excludes						the files and folders to explictly exclude from the backup
+	 * @param array $excludes		the files and folders to explictly exclude from the backup
 	 * @return void
 	 */
 	public function __construct($basepath, $directories, $excludes = array())
 	{
+		// add the base path if its not set yet, adding a slash to the end if not present
+		if (empty($this->basePath)) $this->basePath = rtrim($basePath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+
 		// repeat for each given directory
 		foreach ((array) $directories as $directory) {
-			
+
 			// merge existing file list with new directory
-			$this->fileList = array_merge($this->fileList, $this->getDirectory($directory));
+			$this->fileList = array_merge($this->fileList, $this->getDirectory($this->basePath . $directory));
 		}
 	}
-	
-	
+
+
 	/**
 	 * getFileList function.
 	 * 
