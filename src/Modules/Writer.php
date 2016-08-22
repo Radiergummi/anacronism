@@ -1,5 +1,5 @@
 <?php
-namespace Radiergummi\Cronos\Modules;
+namespace Radiergummi\Anacronism\Modules;
 
 /**
  * Writer interface.
