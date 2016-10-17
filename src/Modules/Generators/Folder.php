@@ -2,7 +2,7 @@
 	namespace Radiergummi\Anacronism\Modules\Generators;
 
 	use Radiergummi\Anacronism\Helpers\DirectoryFilter;
-	use Radiergummi\Anacronism\Modules\Generator;
+	use Radiergummi\Anacronism\Generator;
 	use RecursiveDirectoryIterator;
 	use RecursiveIteratorIterator;
 
@@ -64,8 +64,15 @@
 			// repeat for each given directory
 			foreach ((array) $directories as $directory) {
 
+				if (!realpath($directory)) {
+					throw new \RuntimeException(sprintf('%s is no valid path', $directory));
+				}
+
 				// merge existing file list with new directory
-				$this->fileList = array_merge($this->fileList, $this->getDirectory($this->basePath . $directory));
+				$this->fileList = array_merge(
+					$this->fileList,
+					$this->getDirectory(realpath($directory))
+				);
 			}
 		}
 
@@ -111,7 +118,7 @@
 					continue;
 				}
 
-				$files[] = $file;
+				$files[$name] = $file;
 			}
 
 			// return the file list

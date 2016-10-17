@@ -1,5 +1,5 @@
 <?php
-	namespace Radiergummi\Anacronism\Modules;
+	namespace Radiergummi\Anacronism;
 
 	/**
 	 * Exporter interface.

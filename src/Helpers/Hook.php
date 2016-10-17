@@ -61,7 +61,7 @@ class Hook
 	 */
 	public static function trigger($name, $arguments = array())
 	{
-		// check wether the hook exists
+		// check whether the hook exists
 		if (! isset(static::$hooks[$name])) return null;
 		
 		// call the registered callback for this listener

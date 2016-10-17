@@ -1,11 +1,11 @@
 <?php
-	namespace Radiergummi\Anacronism\Modules\Generators;
+	namespace Radiergummi\Anacronism;
 
 	/**
 	 * Database class.
 	 * Base class for database generators
 	 */
-	abstract class Database
+	abstract class DatabaseGenerator
 	{
 		/**
 		 * the database PDO handle
@@ -20,9 +20,9 @@
 		 *
 		 * @access public
 		 * @param string $dsn
-		 * @return \Radiergummi\Anacronism\Modules\Generators\Database
+		 * @return \Radiergummi\Anacronism\DatabaseGenerator
 		 */
-		public function connect(string $dsn): Database
+		public function connect(string $dsn): DatabaseGenerator
 		{
 			$this->instance = new \PDO($dsn);
 

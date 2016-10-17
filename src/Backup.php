@@ -1,8 +1,10 @@
 <?php
 	namespace Radiergummi\Anacronism;
 
-	use Radiergummi\Anacronism\Helpers\Hook;
+	use Radiergummi\Anacronism\Events\ExportEvent;
+	use Radiergummi\Anacronism\Events\WriteEvent;
 	use Radiergummi\Anacronism\Helpers\Log;
+	use Symfony\Component\EventDispatcher\EventDispatcher;
 
 	/**
 	 * Backup class.
@@ -16,14 +18,11 @@
 	class Backup
 	{
 		/**
-		 * path
-		 * (default value: '')
+		 * the event dispatcher
 		 *
-		 * @var string
-		 * @access public
-		 * @static
+		 * @var \Symfony\Component\EventDispatcher\EventDispatcher
 		 */
-		public static $path = '';
+		private $events;
 
 		/**
 		 * the filename for the archive generated
@@ -37,21 +36,19 @@
 		 * list of generator calls
 		 * (default value: null)
 		 *
-		 * @static
 		 * @access private
 		 * @var object
 		 */
-		private static $generators = null;
+		private $generators = null;
 
 		/**
 		 * the selected exporter
 		 * (default value: null)
 		 *
-		 * @static
 		 * @access private
 		 * @var string
 		 */
-		private static $exporter = null;
+		private $exporter = null;
 
 		/**
 		 * basePath
@@ -60,9 +57,8 @@
 		 *
 		 * @var string
 		 * @access private
-		 * @static
 		 */
-		private static $basePath = '';
+		private $basePath = '';
 
 		/**
 		 * list of files to include in the backup
@@ -87,17 +83,19 @@
 			$this->archiveFilename = $archiveFilename . '.' . $exporter;
 
 			// set base path to this files folder
-			static::$path = dirname(__FILE__) . DIRECTORY_SEPARATOR;
+			$this->setBasePath(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'temp');
 
 			// load all generators
-			if (is_null(static::$generators)) {
-				static::$generators = static::loadGenerators();
+			if (is_null($this->generators)) {
+				$this->generators = $this->loadGenerators();
 			}
 
 			// load the exporter
-			if (is_null(static::$exporter)) {
-				static::$exporter = ucfirst(strtolower($exporter));
+			if (is_null($this->exporter)) {
+				$this->exporter = ucfirst(strtolower($exporter));
 			}
+
+			$this->events = new EventDispatcher();
 		}
 
 		/**
@@ -112,35 +110,37 @@
 		public function setBasePath(string $path)
 		{
 			if (! realpath($path)) {
-				throw new Error('the given output path does not exist.');
+				mkdir($path);
 			}
 
-			static::$basePath = realpath($path);
+			$this->basePath = realpath($path) . DIRECTORY_SEPARATOR;
 		}
 
 		/**
 		 * loadGenerators function.
 		 *
 		 * @access private
-		 * @static
 		 * @return array    the available modules
 		 */
-		private static function loadGenerators(): array
+		private function loadGenerators(): array
 		{
 			$modules = [ ];
 
 			// build the path to the generators folder
-			$path  = static::$path . 'Modules' . DIRECTORY_SEPARATOR . 'Generators';
+			$path  = dirname(__FILE__) . DIRECTORY_SEPARATOR . 'Modules' . DIRECTORY_SEPARATOR . 'Generators';
 			$dir   = new \RecursiveDirectoryIterator($path, \RecursiveDirectoryIterator::SKIP_DOTS);
 			$files = new \RecursiveIteratorIterator($dir, \RecursiveIteratorIterator::CHILD_FIRST);
 
 			// iterate over all generators
 			foreach ($files as $file) {
+				if ($file->isDir()) {
+					continue;
+				}
 
-				$module = substr($file->getFileName(), 0, -strlen('.' . $file->getExtension()));
+				$module = $file->getBaseName('.php');
 
 				// add each class to the generators array
-				$modules[ $module ] = 'Radiergummi\\Anacronism\\Modules\\generators\\' . $module . '::run()';
+				$modules[ $module ] = 'Radiergummi\\Anacronism\\Modules\\Generators\\' . $module . '::run()';
 			}
 
 			// return the list of generators
@@ -155,7 +155,20 @@
 		 */
 		private function buildHashFile()
 		{
-			// TODO
+			$hashTable = [ ];
+
+			foreach ($this->fileList as $filePath) {
+				$file = new \SplFileInfo($filePath);
+
+				// hash the file path, size and CTime using murmur
+				$hashTable[ $file->getRealPath() ] = murmurhash3(
+					$file->getRealPath() .
+					$file->getSize() .
+					$file->getCTime()
+				);
+			}
+
+			file_put_contents($this->basePath . $this->archiveFilename . '.hash.json', json_encode($hashTable));
 		}
 
 		/**
@@ -212,14 +225,16 @@
 			// create an instance of the writer, which sets up a connection
 			$writer = new $writerClass;
 
-			// run eventual hooks before starting to write
-			Hook::trigger('beforeStartingWrite');
+			// run eventual events before starting to write
+			$beforeWriteEvent = new WriteEvent($this, $writer);
+			$this->events->dispatch('beforeStartingWrite', $beforeWriteEvent);
 
 			// write the previously generated archive to the location
 			$writer->write($this->archiveFilename);
 
-			// run eventual hooks after writing
-			Hook::trigger('afterWriting');
+			// run eventual events after writing
+			$afterWriteEvent = new WriteEvent($this, $writer);
+			$this->events->dispatch('afterWriting', $afterWriteEvent);
 		}
 
 		/**
@@ -232,19 +247,20 @@
 		private function export(): Backup
 		{
 			// build the exporter class name
-			$exporterClass = 'Radiergummi\\Anacronism\\Modules\\Exporters\\' . ucfirst(strtolower(static::$exporter));
+			$exporterClass = 'Radiergummi\\Anacronism\\Modules\\Exporters\\' . ucfirst(strtolower($this->exporter));
 
 			// create an instance of the exporter
-			$archive = new $exporterClass(static::$basePath, $this->archiveFilename);
+			$archive = new $exporterClass($this->basePath, $this->archiveFilename);
 
-			// run eventual hooks before starting the export process
-			Hook::trigger('beforeStartingExport', $archive);
+			$beforeExportEvent = new ExportEvent($this, $archive);
+			$this->events->dispatch('beforeStartingExport', $beforeExportEvent);
 
 			// add the current file list
 			$archive->add($this->fileList);
 
 			// run eventual hooks before finalizing the archive
-			Hook::trigger('beforeClosingArchive', $archive);
+			$afterExportEvent = new ExportEvent($this, $archive);
+			$this->events->dispatch('beforeClosingArchive', $afterExportEvent);
 
 			// finalize the archive
 			$archive->close();
@@ -271,7 +287,7 @@
 			$generatorName = 'Radiergummi\\Anacronism\\Modules\\Generators\\' . ucfirst(strtolower($method));
 
 			// create a new generator instance
-			$generator = new $generatorName(static::$basePath, $arguments);
+			$generator = new $generatorName($this->basePath, $arguments);
 
 			try {
 				// retrieve a list of files to include in the archive
@@ -288,5 +304,39 @@
 
 			// return object for chaining
 			return $this;
+		}
+
+		/**
+		 * getFileList function.
+		 * returns the file list
+		 *
+		 * @access public
+		 * @return array
+		 */
+		public function getFileList(): array
+		{
+			return $this->fileList;
+		}
+
+		/**
+		 * inspect function.
+		 * debug method
+		 *
+		 * @access public
+		 * @return array
+		 */
+		public function inspect()
+		{
+			$reflector  = new \ReflectionObject($this);
+			$properties = $reflector->getProperties();
+			$methods    = $reflector->getMethods();
+			$name       = $reflector->getName();
+
+			return [
+				$name => [
+					'properties' => $properties,
+					'methods'    => $methods
+				]
+			];
 		}
 	}

@@ -1,4 +1,4 @@
-<?
+<?php
 namespace Radiergummi\Anacronism\Helpers;
 
 /**
@@ -18,7 +18,7 @@ class DirectoryFilter extends \RecursiveFilterIterator
      * @var array
      * @access protected
      */
-    protected $exclude = array();
+    protected $exclude = [];
 
 
     /**
@@ -27,9 +27,8 @@ class DirectoryFilter extends \RecursiveFilterIterator
      * @access public
      * @param mixed $iterator
      * @param array $exclude
-     * @return void
      */
-    public function __construct($iterator, array $exclude)
+    public function __construct(\Iterator $iterator, array $exclude)
     {
         parent::__construct($iterator);
         $this->exclude = $exclude;
@@ -40,9 +39,9 @@ class DirectoryFilter extends \RecursiveFilterIterator
      * accept function.
      * 
      * @access public
-     * @return void
+     * @return bool
      */
-    public function accept()
+    public function accept(): bool
     {
         return ! ($this->isDir() && in_array($this->getFilename(), $this->exclude));
     }
@@ -52,9 +51,9 @@ class DirectoryFilter extends \RecursiveFilterIterator
      * getChildren function.
      * 
      * @access public
-     * @return void
+     * @return DirectoryFilter
      */
-    public function getChildren()
+    public function getChildren(): DirectoryFilter
     {
         return new DirectoryFilter($this->getInnerIterator()->getChildren(), $this->exclude);
     }

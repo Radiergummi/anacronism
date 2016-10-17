@@ -1,16 +1,16 @@
 <?php
 	namespace Radiergummi\Anacronism\Modules\Writers;
 
-	use Radiergummi\Anacronism\Modules\Writer;
+	use Radiergummi\Anacronism\Writer;
 
 	/**
 	 * Ftp class.
 	 *
-	 * @implements Radiergummi\Anacronism\Modules\Writer
+	 * @implements Radiergummi\Anacronism\Writer
 	 */
 	class Ftp implements Writer
 	{
-		public function write(array $files)
+		public function write(string $archivePath)
 		{
 			# TODO
 		}

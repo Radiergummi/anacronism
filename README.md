@@ -4,7 +4,7 @@ Anacronism is a modular backup engine for web projects, well suited for shared h
 ## How it works
 When coming up with Anacronism, I split the backup process into three segments: *generating data*, *exporting data* and *writing data*.  
 
-In the first step, a collection of filesystem entries is made and additional steps, such as database dumping, are performed. In the second step, the priviously collected items are compressed into an archive. In the third step, the resulting archive is written to the destination, for example a cloud storage, FTP server or another hard drive.
+In the first step, a collection of filesystem entries is made and additional steps, such as database dumping, are performed. In the second step, the previously collected items are compressed into an archive. In the third step, the resulting archive is written to the destination, for example a cloud storage, FTP server or another hard drive.
 
 To make it easy to adapt Anachronism to your needs, each of those steps uses plugins, referred to as *modules*. 
 

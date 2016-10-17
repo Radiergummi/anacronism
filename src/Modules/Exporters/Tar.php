@@ -1,11 +1,11 @@
 <?php
 	namespace Radiergummi\Anacronism\Modules\Exporters;
 
-	use Radiergummi\Anacronism\Modules\Exporter;
+	use Radiergummi\Anacronism\Exporter;
 
 	/**
 	 * Tar class.
-	 * @implements \Radiergummi\Anacronism\Modules\Exporter
+	 * @implements \Radiergummi\Anacronism\Exporter
 	 */
 	class Tar implements Exporter
 	{
@@ -46,10 +46,10 @@
 		 * add function.
 		 *
 		 * @access public
-		 * @param array $files
+		 * @param array $fileList
 		 * @return Tar
 		 */
-		public function add(array $files): Tar
+		public function add(array $fileList): Tar
 		{
 			foreach ($files as $file) {
 

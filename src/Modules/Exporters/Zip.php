@@ -1,12 +1,12 @@
 <?php
 	namespace Radiergummi\Anacronism\Modules\Exporters;
 
-	use Radiergummi\Anacronism\Modules\Exporter;
+	use Radiergummi\Anacronism\Exporter;
 	use ZipArchive;
 
 	/**
 	 * Zip class.
-	 * @implements \Radiergummi\Anacronism\Modules\Exporter
+	 * @implements \Radiergummi\Anacronism\Exporter
 	 */
 	class Zip implements Exporter
 	{
@@ -46,7 +46,7 @@
 
 			// open the new archive
 			$this->archive->open(
-				$this->basePath . DIRECTORY_SEPARATOR . 'backup' . DIRECTORY_SEPARATOR . $filename,
+				$this->basePath . DIRECTORY_SEPARATOR . $filename,
 				ZipArchive::CREATE | ZipArchive::OVERWRITE
 			);
 		}
@@ -55,12 +55,12 @@
 		 * add function.
 		 *
 		 * @access public
-		 * @param array $files
-		 * @return Zip
+		 * @param array $fileList
+		 * @return Exporter
 		 */
-		public function add(array $files): Zip
+		public function add(array $fileList): Exporter
 		{
-			foreach ($files as $file) {
+			foreach ($fileList as $file) {
 
 				// Get real and relative path for current file
 				$filePath     = $file->getRealPath();

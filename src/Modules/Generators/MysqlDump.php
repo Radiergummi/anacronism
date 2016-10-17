@@ -1,17 +1,16 @@
 <?php
-	namespace Radiergummi\Anacronism\Modules\Generators\Database;
+	namespace Radiergummi\Anacronism\Modules\Generators;
 
-	use Radiergummi\Anacronism\Modules\Generator;
-	use Radiergummi\Anacronism\Modules\Generators\Database;
+	use Radiergummi\Anacronism\Generator;
+	use Radiergummi\Anacronism\DatabaseGenerator;
 
 	/**
 	 * MysqlDump class.
 	 *
-	 * @extends    Database
-	 * @implements Module
+	 * @extends    DatabaseGenerator
 	 * @implements Generator
 	 */
-	class MysqlDump extends Database implements Generator
+	class MysqlDump extends DatabaseGenerator implements Generator
 	{
 		/**
 		 * dumpDatabase function.

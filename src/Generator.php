@@ -1,5 +1,5 @@
 <?php
-	namespace Radiergummi\Anacronism\Modules;
+	namespace Radiergummi\Anacronism;
 
 	/**
 	 * Generator interface.
