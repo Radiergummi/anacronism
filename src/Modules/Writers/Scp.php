@@ -1,15 +1,17 @@
 <?php
-namespace Radiergummi\Anacronism\Modules\Writers;
+	namespace Radiergummi\Anacronism\Modules\Writers;
 
-/**
- * Scp class.
- * 
- * @implements Radiergummi\Anacronism\Modules\Writer
- */
-class Scp implements Radiergummi\Anacronism\Modules\Writer
-{
-  public function write($files)
-  {
-    # TODO
-  }
-}
+	use Radiergummi\Anacronism\Modules\Writer;
+
+	/**
+	 * Scp class.
+	 *
+	 * @implements Radiergummi\Anacronism\Modules\Writer
+	 */
+	class Scp implements Writer
+	{
+		public function write(array $files)
+		{
+			# TODO
+		}
+	}

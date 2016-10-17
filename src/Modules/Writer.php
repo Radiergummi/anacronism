@@ -8,10 +8,12 @@ interface Writer
 {
 	/**
 	 * write function.
-	 * writes an archive.
-	 * 
+	 * Writers need to implement the write method that writes the archive. it receives a list of files.
+	 *
 	 * @access public
-	 * @return void
+	 * @param array $files
+	 *
+	 * @return mixed
 	 */
-	public function write($files);
+	public function write(array $files);
 }

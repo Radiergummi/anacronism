@@ -1,50 +1,49 @@
 <?php
-namespace Radiergummi\Anacronism\Modules\Generators;
+	namespace Radiergummi\Anacronism\Modules\Generators;
 
-/**
- * Database class.
- * Base class for database generators
- */
-abstract class Database
-{
 	/**
-	 * instance
-	 * 
-	 * (default value: null)
-	 * 
-	 * @var mixed
-	 * @access private
-	 * @static
+	 * Database class.
+	 * Base class for database generators
 	 */
-	private static $instance = null;
-	
-	
-	/**
-	 * instance function.
-	 * 
-	 * @access public
-	 * @static
-	 * @return object  the current database instance
-	 */
-	public static function instance()
+	abstract class Database
 	{
-		// if there is no active connection, start one
-		if (is_null(static::$instance)) static::$instance = static::connect();
-		
-		// return the database instance
-		return static::$instance;
-	}
+		/**
+		 * the database PDO handle
+		 *
+		 * @var \PDO
+		 * @access protected
+		 */
+		protected $instance;
 
+		/**
+		 * Database connector.
+		 *
+		 * @access public
+		 * @param string $dsn
+		 * @return \Radiergummi\Anacronism\Modules\Generators\Database
+		 */
+		public function connect(string $dsn): Database
+		{
+			$this->instance = new \PDO($dsn);
 
-	/**
-	 * connect function.
-	 * 
-	 * @access public
-	 * @static
-	 * @return object  the PDO
-	 */
-	public static function connect()
-	{
-		return new PDO();
+			return $this;
+		}
+
+		/**
+		 * buildDsn function.
+		 * builds the database source name for the PDO constructor
+		 *
+		 * @access protected
+		 * @param string $protocol
+		 * @param string $username
+		 * @param string $password
+		 * @param string $hostname
+		 * @param string $database
+		 *
+		 * @return string
+		 */
+		protected function buildDsn(string $protocol, string $username, string $password, string $hostname, string $database): string
+		{
+			return sprintf('%s://%s:%s@%s/%s', $protocol, $username, $password, $hostname, $database);
+		}
 	}
-}
