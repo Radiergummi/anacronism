@@ -1,0 +1,18 @@
+{
+  "name":              "Radiergummi/anacronism",
+  "description":       "A modular backup engine",
+  "homepage": "https://github.com/Radiergummi/anacronism",
+  "minimum-stability": "stable",
+  "license":           "Apache-2.0",
+  "authors":           [
+    {
+      "name":  "Moritz Friedrich",
+      "email": "m@9dev.de",
+      "homepage": "https://github.com/Radiergummi",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "symfony/event-dispatcher": "3.1.*"
+  }
+}
