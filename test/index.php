@@ -9,6 +9,7 @@
 	$backup = new Backup(sprintf('backup-%s', time()), 'zip');
 	$backup->folder('../vendor');
 	$backup->store(['dummy']);
+	"Backup: " .$backup;
 
 	$file = new SPLFileInfo(realpath('../src/Backup.php'));
 	$inspected = $backup->inspect();

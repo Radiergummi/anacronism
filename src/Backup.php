@@ -25,6 +25,13 @@
 		private $events;
 
 		/**
+		 * the hashed backup representation
+		 *
+		 * @var \Radiergummi\Anacronism\Hash
+		 */
+		private $hash;
+
+		/**
 		 * the filename for the archive generated
 		 * (default value: '')
 		 *
@@ -155,20 +162,7 @@
 		 */
 		private function buildHashFile()
 		{
-			$hashTable = [ ];
-
-			foreach ($this->fileList as $filePath) {
-				$file = new \SplFileInfo($filePath);
-
-				// hash the file path, size and CTime using murmur
-				$hashTable[ $file->getRealPath() ] = murmurhash3(
-					$file->getRealPath() .
-					$file->getSize() .
-					$file->getCTime()
-				);
-			}
-
-			file_put_contents($this->basePath . $this->archiveFilename . '.hash.json', json_encode($hashTable));
+			$this->hash = new Hash($this->fileList);
 		}
 
 		/**
@@ -181,8 +175,9 @@
 		 */
 		public function store(array $writers): Backup
 		{
-
-			// build hash file for the current stack
+			// build hash file for the current stack. This will be more useful later on, once
+			// diff backups are possible - here, we could already determine if there have been any
+			// changed files at all and if not, simply reuse the previous backup to save disk space.
 			$this->buildHashFile();
 
 			// start the export
@@ -304,6 +299,11 @@
 
 			// return object for chaining
 			return $this;
+		}
+
+		public function __toString()
+		{
+			return $this->basePath . $this->archiveFilename;
 		}
 
 		/**

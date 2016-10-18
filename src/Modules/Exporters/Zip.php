@@ -27,7 +27,7 @@
 		 * @var string
 		 * @access private
 		 */
-		private $basePath = '';
+		private $targetPath = '';
 
 		/**
 		 * __construct function.
@@ -39,14 +39,14 @@
 		public function __construct(string $path, string $filename)
 		{
 			// create a trailing slash and cut any existing
-			$this->basePath = rtrim($path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+			$this->targetPath = rtrim($path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
 
 			// create a new zip instance
 			$this->archive = new ZipArchive();
 
 			// open the new archive
 			$this->archive->open(
-				$this->basePath . DIRECTORY_SEPARATOR . $filename,
+				$this->targetPath . DIRECTORY_SEPARATOR . $filename,
 				ZipArchive::CREATE | ZipArchive::OVERWRITE
 			);
 		}
@@ -64,10 +64,9 @@
 
 				// Get real and relative path for current file
 				$filePath     = $file->getRealPath();
-				$relativePath = substr($filePath, strlen($this->basePath));
 
 				// Add current file to archive
-				$this->archive->addFile($filePath, $relativePath);
+				$this->archive->addFile($filePath);
 			}
 
 			return $this;
