@@ -37,25 +37,16 @@
 		 *
 		 * @var string
 		 */
-		private $archiveFilename = '';
+		private $archiveFilename;
 
 		/**
-		 * list of generator calls
-		 * (default value: null)
-		 *
-		 * @access private
-		 * @var object
-		 */
-		private $generators = null;
-
-		/**
-		 * the selected exporter
+		 * the selected compressor (zip, tar, bzip..)
 		 * (default value: null)
 		 *
 		 * @access private
 		 * @var string
 		 */
-		private $exporter = null;
+		private $compressor;
 
 		/**
 		 * basePath
@@ -65,7 +56,7 @@
 		 * @var string
 		 * @access private
 		 */
-		private $basePath = '';
+		private $basePath;
 
 		/**
 		 * list of files to include in the backup
@@ -81,88 +72,116 @@
 		 * Creates a new backup instance
 		 *
 		 * @access public
-		 * @param string $archiveFilename the name of the backup archive
-		 * @param string $exporter        the exporter to use
+		 * @param array $options
 		 */
-		public function __construct(string $archiveFilename, string $exporter)
+		public function __construct(array $options)
 		{
 			// set the archive name to the parameter value
-			$this->archiveFilename = $archiveFilename . '.' . $exporter;
+			$this->archiveFilename = 'placeholder';
 
 			// set base path to this files folder
 			$this->setBasePath(dirname(__FILE__) . DIRECTORY_SEPARATOR . 'temp');
 
-			// load all generators
-			if (is_null($this->generators)) {
-				$this->generators = $this->loadGenerators();
-			}
-
-			// load the exporter
-			if (is_null($this->exporter)) {
-				$this->exporter = ucfirst(strtolower($exporter));
-			}
-
+			// load the events library
 			$this->events = new EventDispatcher();
+
+			$this->events->dispatch('backupStarted');
 		}
 
 		/**
-		 * setBasePath function.
-		 * sets the path to the backup output folder
+		 * add function.
+		 * adds multiple generators to the backup
 		 *
 		 * @access public
-		 * @param string $path
-		 * @return void
-		 * @throws Error
+		 * @param string|array $generators
+		 * @param array        $arguments (default value: [])
+		 * @return Backup
 		 */
-		public function setBasePath(string $path)
+		public function add($generators, array $arguments = [ ]): Backup
 		{
-			if (! realpath($path)) {
-				mkdir($path);
+			// if we received a single string, transform it into an array
+			if (is_string($generators)) {
+				$generators = [
+					$generators => $arguments
+				];
 			}
 
-			$this->basePath = realpath($path) . DIRECTORY_SEPARATOR;
+			foreach ($generators as $generatorName => $arguments) {
+				$this->generate($generatorName, $arguments);
+			}
+
+			return $this;
 		}
 
 		/**
-		 * loadGenerators function.
+		 * Magic method to directly start generators on the instance
 		 *
-		 * @access private
-		 * @return array    the available modules
+		 * @access public
+		 * @param string $method    the generator
+		 * @param array  $arguments the arguments given with the generator
+		 * @return Backup           the call status
 		 */
-		private function loadGenerators(): array
+		public function __call(string $method, array $arguments = [ ]): Backup
 		{
-			$modules = [ ];
+			return $this->generate(substr($method, 3), $arguments);
+		}
 
-			// build the path to the generators folder
-			$path  = dirname(__FILE__) . DIRECTORY_SEPARATOR . 'Modules' . DIRECTORY_SEPARATOR . 'Generators';
-			$dir   = new \RecursiveDirectoryIterator($path, \RecursiveDirectoryIterator::SKIP_DOTS);
-			$files = new \RecursiveIteratorIterator($dir, \RecursiveIteratorIterator::CHILD_FIRST);
+		/**
+		 * compressWith function.
+		 * adds a compressor to the backup
+		 *
+		 * @access
+		 * @param $compressor
+		 *
+		 * @return \Radiergummi\Anacronism\Backup
+		 */
+		public function compressWith($compressor)
+		{
+			$this->compressor = $compressor;
+			$this->compress();
 
-			// iterate over all generators
-			foreach ($files as $file) {
-				if ($file->isDir()) {
-					continue;
+			/**
+			 * Anonymous class to enable compressor chaining.
+			 * That means you can compress your archive with tar,
+			 * then with gzip for example.
+			 * This class provides a "andWith()" method. All other
+			 * calls will be applied to the original backup,
+			 * so once you call "saveAt" for example, you will
+			 * receive the backup object again.
+			 */
+			return new class($this) {
+				protected $backup;
+
+				/**
+				 * creates a new instance and sets the backup
+				 *
+				 * @param Backup $backup
+				 */
+				public function __construct(Backup $backup)
+				{
+					$this->backup = $backup;
 				}
 
-				$module = $file->getBaseName('.php');
+				/**
+				 * andWith function.
+				 * adds another compressor
+				 *
+				 * @access public
+				 * @param string $compressor
+				 *
+				 * @return $this
+				 */
+				public function andWith(string $compressor)
+				{
+					$this->backup->compressWith($compressor);
+					return $this;
+				}
 
-				// add each class to the generators array
-				$modules[ $module ] = 'Radiergummi\\Anacronism\\Modules\\Generators\\' . $module . '::run()';
-			}
-
-			// return the list of generators
-			return $modules;
-		}
-
-		/**
-		 * buildHashFile function.
-		 *
-		 * @access private
-		 * @return void
-		 */
-		private function buildHashFile()
-		{
-			$this->hash = new Hash($this->fileList);
+				public function __call(string $method, array $arguments): Backup
+				{
+					return $this->backup->$method(...$arguments);
+				}
+			};
 		}
 
 		/**
@@ -173,15 +192,12 @@
 		 * @param array $writers the writers to write the backup to
 		 * @return Backup        for chaining
 		 */
-		public function store(array $writers): Backup
+		public function saveAt(array $writers): Backup
 		{
 			// build hash file for the current stack. This will be more useful later on, once
 			// diff backups are possible - here, we could already determine if there have been any
 			// changed files at all and if not, simply reuse the previous backup to save disk space.
 			$this->buildHashFile();
-
-			// start the export
-			$this->export();
 
 			foreach ((array) $writers as $writer) {
 				try {
@@ -201,7 +217,131 @@
 				}
 			}
 
-			// return the object for chaining
+			// return the chaining object to attach more writers
+			return new class($this) {
+				protected $backup;
+
+				/**
+				 * creates a new object and sets the backup
+				 *
+				 * @param Backup $backup
+				 */
+				public function __construct(Backup $backup)
+				{
+					$this->backup = $backup;
+				}
+
+				/**
+				 * andAt function.
+				 * allows to add another location.
+				 *
+				 * @access public
+				 * @param string $writer
+				 * @return $this
+				 */
+				public function andAt(string $writer)
+				{
+					$this->backup->saveAt([$writer]);
+
+					return $this;
+				}
+
+				/**
+				 * __call function.
+				 * forward all other calls to the original backup class
+				 *
+				 * @access public
+				 * @param string $method
+				 * @param array $arguments
+				 *
+				 * @return Backup
+				 */
+				public function __call(string $method, array $arguments): Backup
+				{
+					return $this->backup->$method(...$arguments);
+				}
+			};
+		}
+
+		/**
+		 * __toString function.
+		 * returns the current backup file path
+		 *
+		 * @access
+		 * @return string
+		 */
+		public function __toString()
+		{
+			return $this->basePath . $this->archiveFilename;
+		}
+
+		/**
+		 * runGenerator function.
+		 * instantiates a generator and processes its file list
+		 *
+		 * @access
+		 * @param       $generatorName
+		 * @param array $arguments
+		 * @return Backup
+		 */
+		private function generate(string $generatorName, $arguments = [ ]): Backup
+		{
+
+			// format the generator name
+			$generatorClass = 'Radiergummi\\Anacronism\\Modules\\Generators\\' . ucfirst(strtolower($generatorName));
+
+			// create a new generator instance, passing all arguments as parameters
+			$generator = new $generatorClass($this->basePath, ...$arguments);
+
+			try {
+				// retrieve a list of files to include in the archive
+				$files = $generator->getFileList();
+
+				// add each file to the file list
+				$this->fileList = array_merge($this->fileList, $files);
+			} catch (\Exception $e) {
+
+				// append this incidence to the logfile
+				Log::append($e->getMessage());
+			}
+
+			// return object for chaining
+			return $this;
+		}
+
+		/**
+		 * compress function.
+		 * compresses the backup using the set compressor. This is optional.
+		 *
+		 * @access private
+		 * @return Backup instance for chaining
+		 */
+		private function compress(): Backup
+		{
+			// build the compressor class name
+			$compressorClass = 'Radiergummi\\Anacronism\\Modules\\Exporters\\' . ucfirst(strtolower($this->compressor));
+
+			// opens a new archive handle
+			$archive = new $compressorClass($this->basePath, $this->archiveFilename);
+
+			$beforeExportEvent = new ExportEvent($this, $archive);
+			$this->events->dispatch('beforeStartingExport', $beforeExportEvent);
+
+			// add the current file list to the archive
+			$archive->add($this->fileList);
+
+			// run eventual hooks before finalizing the archive
+			$afterExportEvent = new ExportEvent($this, $archive);
+			$this->events->dispatch('beforeClosingArchive', $afterExportEvent);
+
+			// finalize the archive
+			$archive->close();
+
+			$this->fileList = [
+				new \SplFileInfo($this->basePath . $this->archiveFilename)
+			];
+
+			// return this for chaining
 			return $this;
 		}
 
@@ -210,9 +350,9 @@
 		 *
 		 * @access private
 		 * @param string $writerName
-		 * @return void
+		 * @return Backup
 		 */
-		private function write(string $writerName)
+		private function write(string $writerName): Backup
 		{
 			// build the writer class name
 			$writerClass = 'Radiergummi\\Anacronism\\Modules\\Writers\\' . ucfirst(strtolower($writerName));
@@ -225,85 +365,43 @@
 			$this->events->dispatch('beforeStartingWrite', $beforeWriteEvent);
 
 			// write the previously generated archive to the location
-			$writer->write($this->archiveFilename);
+			$writer->write($this->fileList);
 
 			// run eventual events after writing
 			$afterWriteEvent = new WriteEvent($this, $writer);
 			$this->events->dispatch('afterWriting', $afterWriteEvent);
-		}
 
-		/**
-		 * export function.
-		 * exports the backup using the set exporter
-		 *
-		 * @access private
-		 * @return Backup instance for chaining
-		 */
-		private function export(): Backup
-		{
-			// build the exporter class name
-			$exporterClass = 'Radiergummi\\Anacronism\\Modules\\Exporters\\' . ucfirst(strtolower($this->exporter));
-
-			// create an instance of the exporter
-			$archive = new $exporterClass($this->basePath, $this->archiveFilename);
-
-			$beforeExportEvent = new ExportEvent($this, $archive);
-			$this->events->dispatch('beforeStartingExport', $beforeExportEvent);
-
-			// add the current file list
-			$archive->add($this->fileList);
-
-			// run eventual hooks before finalizing the archive
-			$afterExportEvent = new ExportEvent($this, $archive);
-			$this->events->dispatch('beforeClosingArchive', $afterExportEvent);
-
-			// finalize the archive
-			$archive->close();
-
-			// return this for chaining
 			return $this;
 		}
 
 		/**
-		 * Magic method to directly start generators on the instance
+		 * setBasePath function.
+		 * sets the path to the backup output folder
 		 *
 		 * @access public
-		 * @param string $method    the generator
-		 * @param array  $arguments the arguments given with the generator
-		 * @return Backup           the call status
+		 * @param string $path
+		 * @return void
+		 * @throws Error
 		 */
-		public function __call(string $method, array $arguments): Backup
+		private function setBasePath(string $path)
 		{
-			if (in_array($method, get_class_methods($this))) {
-				return null;
+			if (! realpath($path)) {
+				mkdir($path);
 			}
 
-			// format the generator name
-			$generatorName = 'Radiergummi\\Anacronism\\Modules\\Generators\\' . ucfirst(strtolower($method));
-
-			// create a new generator instance
-			$generator = new $generatorName($this->basePath, $arguments);
-
-			try {
-				// retrieve a list of files to include in the archive
-				$files = call_user_func([ $generator, 'getFileList' ]);
-
-				// add each file to the file list
-				$this->fileList = array_merge($this->fileList, $files);
-			} // catch an eventual exception
-			catch (\Exception $e) {
-
-				// append this incidence to the logfile
-				Log::append($e->getMessage());
-			}
-
-			// return object for chaining
-			return $this;
+			$this->basePath = realpath($path) . DIRECTORY_SEPARATOR;
 		}
 
-		public function __toString()
+		/**
+		 * buildHashFile function.
+		 *
+		 * @access private
+		 * @return void
+		 */
+		private function buildHashFile()
 		{
-			return $this->basePath . $this->archiveFilename;
+			$this->hash = new Hash($this->fileList);
+			$this->hash->dump($this->basePath . 'lastBackup.hash.json');
 		}
 
 		/**

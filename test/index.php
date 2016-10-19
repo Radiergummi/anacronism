@@ -5,11 +5,32 @@
 	# require autoloader
 	require '../vendor/autoload.php';
 
+
+
+
+
+
+
+
 	# instantiate the backup
-	$backup = new Backup(sprintf('backup-%s', time()), 'zip');
-	$backup->folder('../vendor');
-	$backup->store(['dummy']);
-	"Backup: " .$backup;
+	$backup = new Backup([]);
+	$backup
+		->addFolder('../vendor')
+		->compressWith('zip')
+		->saveAt(['local']);
+
+
+
+
+
+
+
+
+
+
+
+
+	var_dump("Backup: $backup");
 
 	$file = new SPLFileInfo(realpath('../src/Backup.php'));
 	$inspected = $backup->inspect();
